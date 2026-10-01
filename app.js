@@ -8,6 +8,7 @@ const WHEEL_ITEM_H = 40; // style.css の .wheel li の高さと合わせる
 // entries は追記のみ。削除する手段は用意しない。
 let state = load();
 let sortDesc = localStorage.getItem(SORT_KEY) !== "asc";
+let openId = null; // いま開いている本（一度に一冊だけ）
 
 function load() {
   try {
@@ -83,6 +84,18 @@ function renderBook(book) {
        <time datetime="${latest.at}">${formatTime(latest.at)}</time>`
     : `<span class="none">まだ栞がありません</span>`;
 
+  const open = book.id === openId;
+  const summaryHtml = `
+      <div class="summary" role="button" tabindex="0" aria-expanded="${open}">
+        <h2>${escapeHtml(book.title)}</h2>
+        <div class="latest">${latestHtml}</div>
+      </div>`;
+
+  // 閉じているときはタイトル・ページ数・最後の日時だけ
+  if (!open) {
+    return `<li class="book${latest ? "" : " unread"}" data-id="${book.id}">${summaryHtml}</li>`;
+  }
+
   const pct = total && latest ? Math.min(100, Math.round((latest.page / total) * 100)) : null;
   const progressHtml = pct !== null
     ? `<div class="progress" aria-label="${pct}%"><div style="width:${pct}%"></div><span>${pct}%</span></div>`
@@ -107,18 +120,17 @@ function renderBook(book) {
     : "";
 
   return `
-    <li class="book${latest ? "" : " unread"}" data-id="${book.id}">
-      <div class="book-head">
-        <h2>${escapeHtml(book.title)}</h2>
-        <button type="button" class="rename" title="タイトルを変更">✎</button>
-      </div>
-      <div class="latest">${latestHtml}</div>
+    <li class="book open${latest ? "" : " unread"}" data-id="${book.id}">
+      ${summaryHtml}
       ${progressHtml}
       <form class="add-entry${total ? " with-wheel" : ""}">
         ${inputHtml}
         <button type="submit">栞をはさむ</button>
       </form>
-      <button type="button" class="set-total">${totalBtn}</button>
+      <div class="actions">
+        <button type="button" class="set-total">${totalBtn}</button>
+        <button type="button" class="rename">タイトルを変更</button>
+      </div>
       ${historyHtml}
     </li>`;
 }
@@ -193,6 +205,7 @@ document.getElementById("add-book").addEventListener("submit", (ev) => {
   const total = parsePages(totalInput.value);
   if (total) book.totalPages = total;
   state.books.push(book);
+  openId = book.id; // 追加した本はすぐ栞をはさめるように開いておく
   save();
   input.value = "";
   totalInput.value = "";
@@ -211,8 +224,27 @@ $books.addEventListener("submit", (ev) => {
   render();
 });
 
+function toggleBook(summary) {
+  const id = summary.closest(".book").dataset.id;
+  openId = openId === id ? null : id;
+  render();
+  if (openId) {
+    $books.querySelector(`.book[data-id="${openId}"]`)?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+}
+
+$books.addEventListener("keydown", (ev) => {
+  if ((ev.key === "Enter" || ev.key === " ") && ev.target.matches(".summary")) {
+    ev.preventDefault();
+    toggleBook(ev.target);
+  }
+});
+
 $books.addEventListener("click", (ev) => {
-  if (ev.target.matches(".rename")) {
+  const summary = ev.target.closest(".summary");
+  if (summary) {
+    toggleBook(summary);
+  } else if (ev.target.matches(".rename")) {
     const book = findBook(ev.target);
     const title = prompt("新しいタイトル", book.title);
     if (title && title.trim()) {

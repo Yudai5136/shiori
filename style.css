@@ -98,16 +98,17 @@ input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
 }
 .toolbar button { padding: 6px 12px; font-size: .85rem; }
 
-.books { list-style: none; margin: 0; padding: 0; display: grid; gap: 16px; }
+.books { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
 
 .book {
   position: relative;
   background: var(--card);
   border: 1px solid var(--line);
   border-radius: 12px;
-  padding: 20px 20px 16px;
+  padding: 0 20px;
   box-shadow: var(--shadow);
 }
+.book.open { padding-bottom: 16px; border-color: var(--accent); }
 /* 栞のリボン */
 .book::before {
   content: "";
@@ -115,27 +116,33 @@ input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
   top: -1px;
   right: 24px;
   width: 14px;
-  height: 34px;
+  height: 30px;
   background: var(--accent);
   clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 78%, 0 100%);
+  pointer-events: none;
 }
 .book.unread::before { background: var(--line); }
 
-.book-head { display: flex; align-items: baseline; gap: 6px; padding-right: 40px; }
-.book-head h2 { margin: 0; font-size: 1.2rem; word-break: break-word; }
-.rename {
-  background: none;
-  color: var(--muted);
-  padding: 2px 6px;
-  font-size: .85rem;
+/* タップで開閉する部分（タイトル・ページ数・最後の日時） */
+.summary {
+  padding: 14px 0;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
 }
-.rename:hover { color: var(--ink); }
+.summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+.summary h2 { margin: 0 44px 0 0; font-size: 1.1rem; word-break: break-word; }
+.book.open .summary { padding: 20px 0 14px; }
+.book.open .summary h2 { font-size: 1.25rem; }
 
-.latest { margin: 10px 0 14px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
-.latest .page { font-size: 2rem; font-weight: 600; font-variant-numeric: tabular-nums; }
-.latest .unit { color: var(--muted); font-size: .9rem; }
-.latest time { color: var(--muted); font-size: .85rem; margin-left: auto; }
-.latest .none { color: var(--muted); font-size: .9rem; }
+.latest { margin-top: 2px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; }
+.latest .page { font-size: 1.4rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+.latest .unit { color: var(--muted); font-size: .85rem; }
+.latest time { color: var(--muted); font-size: .8rem; margin-left: auto; font-variant-numeric: tabular-nums; }
+.latest .none { color: var(--muted); font-size: .85rem; }
+.book.open .latest { margin-top: 8px; }
+.book.open .latest .page { font-size: 2rem; }
 
 .add-entry { display: flex; gap: 8px; }
 .add-entry.with-wheel { align-items: center; }
@@ -161,7 +168,7 @@ input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
 .wheel {
   position: relative;
   flex: 1;
-  height: 200px;
+  height: 202px; /* 中身 200px + 上下の枠線 */
   border: 1px solid var(--line);
   border-radius: 10px;
   background: var(--bg);
@@ -217,17 +224,18 @@ input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
   pointer-events: none;
 }
 
-.set-total {
-  display: block;
-  margin-top: 10px;
+.actions { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 16px; margin-top: 10px; }
+.actions button {
   padding: 2px 0;
   background: none;
   color: var(--muted);
   font-size: .8rem;
   text-decoration: underline;
   text-underline-offset: 3px;
+  white-space: normal;
+  text-align: left;
 }
-.set-total:hover { color: var(--ink); }
+.actions button:hover { color: var(--ink); }
 
 .history {
   list-style: none;
@@ -261,5 +269,5 @@ footer { padding-top: 32px; padding-bottom: calc(48px + env(safe-area-inset-bott
 @media (max-width: 420px) {
   .add-book, .add-entry:not(.with-wheel) { flex-direction: column; }
   .add-book .total { flex-basis: auto; }
-  .latest time { margin-left: 0; width: 100%; }
+  .book.open .latest time { margin-left: 0; width: 100%; }
 }
