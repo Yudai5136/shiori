@@ -1,0 +1,173 @@
+:root {
+  --bg: #f6f1e7;
+  --card: #fffdf8;
+  --ink: #2b2620;
+  --muted: #8a8073;
+  --line: #e4dccd;
+  --accent: #b23a2e;
+  --accent-ink: #fff;
+  --shadow: 0 1px 2px rgb(60 40 20 / 6%), 0 4px 14px rgb(60 40 20 / 6%);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1c1a17;
+    --card: #26231f;
+    --ink: #ece6dc;
+    --muted: #9b9184;
+    --line: #3a352e;
+    --accent: #d65a4a;
+    --accent-ink: #fff;
+    --shadow: none;
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif;
+  line-height: 1.6;
+}
+
+main, .app-header, footer {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+/* ホーム画面から開いたときにノッチや角に隠れないように */
+body {
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+  -webkit-text-size-adjust: 100%;
+}
+
+.app-header { padding-top: calc(40px + env(safe-area-inset-top)); padding-bottom: 8px; }
+.app-header h1 { margin: 0; font-size: 2rem; letter-spacing: .2em; }
+.app-header .sub { margin: 4px 0 0; color: var(--muted); font-size: .9rem; }
+
+button, .button, input {
+  font: inherit;
+  font-family: system-ui, -apple-system, "Hiragino Sans", sans-serif;
+}
+
+button, .button {
+  cursor: pointer;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 16px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: .95rem;
+  white-space: nowrap;
+}
+button:hover, .button:hover { filter: brightness(1.08); }
+
+.ghost {
+  background: transparent;
+  color: var(--ink);
+  border: 1px solid var(--line);
+}
+.ghost:hover { background: var(--card); filter: none; }
+
+input[type="text"], input[type="number"] {
+  width: 100%;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--ink);
+  font-size: 1rem;
+}
+input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+
+.add-book { display: flex; gap: 8px; margin: 24px 0 16px; }
+
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: var(--muted);
+  font-size: .85rem;
+  margin-bottom: 12px;
+}
+.toolbar button { padding: 6px 12px; font-size: .85rem; }
+
+.books { list-style: none; margin: 0; padding: 0; display: grid; gap: 16px; }
+
+.book {
+  position: relative;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 20px 20px 16px;
+  box-shadow: var(--shadow);
+}
+/* 栞のリボン */
+.book::before {
+  content: "";
+  position: absolute;
+  top: -1px;
+  right: 24px;
+  width: 14px;
+  height: 34px;
+  background: var(--accent);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 78%, 0 100%);
+}
+.book.unread::before { background: var(--line); }
+
+.book-head { display: flex; align-items: baseline; gap: 6px; padding-right: 40px; }
+.book-head h2 { margin: 0; font-size: 1.2rem; word-break: break-word; }
+.rename {
+  background: none;
+  color: var(--muted);
+  padding: 2px 6px;
+  font-size: .85rem;
+}
+.rename:hover { color: var(--ink); }
+
+.latest { margin: 10px 0 14px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+.latest .page { font-size: 2rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+.latest .unit { color: var(--muted); font-size: .9rem; }
+.latest time { color: var(--muted); font-size: .85rem; margin-left: auto; }
+.latest .none { color: var(--muted); font-size: .9rem; }
+
+.add-entry { display: flex; gap: 8px; }
+
+.history {
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 10px 0 0;
+  border-top: 1px dashed var(--line);
+  max-height: 220px;
+  overflow-y: auto;
+  font-family: system-ui, -apple-system, "Hiragino Sans", sans-serif;
+  font-size: .85rem;
+}
+.history li {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  padding: 4px 0;
+  color: var(--muted);
+}
+.history li:first-child { color: var(--ink); }
+.history .p { font-variant-numeric: tabular-nums; }
+.history .diff { margin-left: 6px; font-size: .78rem; opacity: .8; }
+.history time { font-variant-numeric: tabular-nums; }
+
+.empty { text-align: center; color: var(--muted); padding: 40px 0; }
+
+footer { padding-top: 32px; padding-bottom: calc(48px + env(safe-area-inset-bottom)); }
+.backup { display: flex; flex-wrap: wrap; gap: 8px; }
+.backup .ghost { font-size: .85rem; padding: 8px 12px; }
+.note { color: var(--muted); font-size: .8rem; margin: 10px 0 0; }
+
+@media (max-width: 420px) {
+  .add-book, .add-entry { flex-direction: column; }
+  .latest time { margin-left: 0; width: 100%; }
+}

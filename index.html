@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>しおり — 読書記録</title>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="しおり">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="theme-color" content="#f6f1e7" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#1c1a17" media="(prefers-color-scheme: dark)">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="app-header">
+    <h1>しおり</h1>
+    <p class="sub">読んだところに、栞をはさむ。</p>
+  </header>
+
+  <main>
+    <form id="add-book" class="add-book">
+      <input id="book-title" type="text" placeholder="本のタイトル" required autocomplete="off">
+      <button type="submit">本を追加</button>
+    </form>
+
+    <div class="toolbar">
+      <span id="count"></span>
+      <button id="sort-toggle" type="button" class="ghost"></button>
+    </div>
+
+    <ul id="books" class="books"></ul>
+    <p id="empty" class="empty" hidden>まだ本がありません。上から追加してください。</p>
+  </main>
+
+  <footer>
+    <div class="backup">
+      <button id="export" type="button" class="ghost">バックアップを書き出す</button>
+      <label class="ghost button">
+        バックアップを読み込む
+        <input id="import" type="file" accept="application/json,.json" hidden>
+      </label>
+    </div>
+    <p class="note">記録はこのブラウザの中に保存されます。別の端末へ移すときや念のための保存には、バックアップを使ってください。</p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
