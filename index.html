@@ -23,6 +23,8 @@
   <main>
     <form id="add-book" class="add-book">
       <input id="book-title" type="text" placeholder="本のタイトル" required autocomplete="off">
+      <input id="book-total" type="text" class="digits total" inputmode="numeric" pattern="[0-9]*"
+             autocomplete="off" placeholder="全ページ数（任意）">
       <button type="submit">本を追加</button>
     </form>
 

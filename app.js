@@ -2,8 +2,9 @@
 
 const STORAGE_KEY = "shiori:data:v1";
 const SORT_KEY = "shiori:sort";
+const WHEEL_ITEM_H = 40; // style.css の .wheel li の高さと合わせる
 
-// データ構造: { books: [{ id, title, createdAt, entries: [{ page, at }] }] }
+// データ構造: { books: [{ id, title, createdAt, totalPages?, entries: [{ page, at }] }] }
 // entries は追記のみ。削除する手段は用意しない。
 let state = load();
 let sortDesc = localStorage.getItem(SORT_KEY) !== "asc";
@@ -40,6 +41,18 @@ function escapeHtml(s) {
   }[c]));
 }
 
+// 全角数字は半角にし、数字以外は取り除く
+function digitsOnly(s) {
+  return String(s)
+    .replace(/[０-９]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xfee0))
+    .replace(/\D/g, "");
+}
+
+function parsePages(s) {
+  const n = parseInt(digitsOnly(s), 10);
+  return Number.isNaN(n) ? null : n;
+}
+
 // ---- 描画 ----
 
 const $books = document.getElementById("books");
@@ -57,16 +70,32 @@ function render() {
   $count.textContent = books.length ? `${books.length} 冊` : "";
   $sort.textContent = sortDesc ? "新しい順 ↓" : "古い順 ↑";
   $books.innerHTML = books.map(renderBook).join("");
+  $books.querySelectorAll(".wheel").forEach(initWheel);
 }
 
 function renderBook(book) {
   const entries = [...book.entries].reverse(); // 新しい順
   const latest = entries[0];
+  const total = book.totalPages;
 
   const latestHtml = latest
-    ? `<span class="page">${latest.page}</span><span class="unit">ページまで</span>
+    ? `<span class="page">${latest.page}</span><span class="unit">${total ? `/ ${total} ` : ""}ページまで</span>
        <time datetime="${latest.at}">${formatTime(latest.at)}</time>`
     : `<span class="none">まだ栞がありません</span>`;
+
+  const pct = total && latest ? Math.min(100, Math.round((latest.page / total) * 100)) : null;
+  const progressHtml = pct !== null
+    ? `<div class="progress" aria-label="${pct}%"><div style="width:${pct}%"></div><span>${pct}%</span></div>`
+    : "";
+
+  const inputHtml = total
+    ? renderWheel(total, Math.min(total, Math.max(1, latest ? latest.page : 1)))
+    : `<input type="text" name="page" inputmode="numeric" pattern="[0-9]*" autocomplete="off"
+         class="digits" placeholder="何ページまで読んだ？" required>`;
+
+  const totalBtn = total
+    ? `全 ${total} ページ（変更）`
+    : `全ページ数を設定すると、スクロールで選べます`;
 
   const historyHtml = entries.length
     ? `<ol class="history">${entries.map((e, i) => {
@@ -84,46 +113,120 @@ function renderBook(book) {
         <button type="button" class="rename" title="タイトルを変更">✎</button>
       </div>
       <div class="latest">${latestHtml}</div>
-      <form class="add-entry">
-        <input type="number" name="page" min="0" step="1" inputmode="numeric" placeholder="何ページまで読んだ？" required>
+      ${progressHtml}
+      <form class="add-entry${total ? " with-wheel" : ""}">
+        ${inputHtml}
         <button type="submit">栞をはさむ</button>
       </form>
+      <button type="button" class="set-total">${totalBtn}</button>
       ${historyHtml}
     </li>`;
 }
 
+// ---- スクロールで選ぶホイール ----
+
+function renderWheel(total, start) {
+  let items = "";
+  for (let i = 1; i <= total; i++) items += `<li>${i}</li>`;
+  return `<div class="wheel" data-start="${start}">
+      <ol>${items}</ol>
+      <span class="wheel-unit">ページ</span>
+    </div>`;
+}
+
+function wheelValue(wheel) {
+  const list = wheel.querySelector("ol");
+  const max = list.children.length;
+  return Math.min(max, Math.max(1, Math.round(list.scrollTop / WHEEL_ITEM_H) + 1));
+}
+
+function initWheel(wheel) {
+  const list = wheel.querySelector("ol");
+  let current = null;
+  const mark = () => {
+    const v = wheelValue(wheel);
+    if (v === current) return;
+    if (current) list.children[current - 1]?.classList.remove("selected");
+    list.children[v - 1].classList.add("selected");
+    current = v;
+  };
+  list.scrollTop = (Number(wheel.dataset.start) - 1) * WHEEL_ITEM_H;
+  mark();
+
+  let ticking = false;
+  list.addEventListener("scroll", () => {
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(() => { ticking = false; mark(); });
+  }, { passive: true });
+
+  // 数字をタップするとそこまで回す
+  list.addEventListener("click", (ev) => {
+    const li = ev.target.closest("li");
+    if (!li) return;
+    const idx = [...list.children].indexOf(li);
+    list.scrollTo({ top: idx * WHEEL_ITEM_H, behavior: "smooth" });
+  });
+}
+
 // ---- 操作 ----
+
+function findBook(el) {
+  const id = el.closest(".book").dataset.id;
+  return state.books.find((b) => b.id === id);
+}
+
+// 数字入力欄は数字以外を入れられないようにする
+document.addEventListener("input", (ev) => {
+  if (!ev.target.matches("input.digits")) return;
+  const cleaned = digitsOnly(ev.target.value);
+  if (cleaned !== ev.target.value) ev.target.value = cleaned;
+});
 
 document.getElementById("add-book").addEventListener("submit", (ev) => {
   ev.preventDefault();
   const input = document.getElementById("book-title");
+  const totalInput = document.getElementById("book-total");
   const title = input.value.trim();
   if (!title) return;
-  state.books.push({ id: uid(), title, createdAt: new Date().toISOString(), entries: [] });
+  const book = { id: uid(), title, createdAt: new Date().toISOString(), entries: [] };
+  const total = parsePages(totalInput.value);
+  if (total) book.totalPages = total;
+  state.books.push(book);
   save();
   input.value = "";
+  totalInput.value = "";
   render();
 });
 
 $books.addEventListener("submit", (ev) => {
   if (!ev.target.matches(".add-entry")) return;
   ev.preventDefault();
-  const id = ev.target.closest(".book").dataset.id;
-  const book = state.books.find((b) => b.id === id);
-  const page = parseInt(ev.target.page.value, 10);
-  if (!book || Number.isNaN(page) || page < 0) return;
+  const book = findBook(ev.target);
+  const wheel = ev.target.querySelector(".wheel");
+  const page = wheel ? wheelValue(wheel) : parsePages(ev.target.page.value);
+  if (!book || page === null) return;
   book.entries.push({ page, at: new Date().toISOString() });
   save();
   render();
 });
 
 $books.addEventListener("click", (ev) => {
-  if (!ev.target.matches(".rename")) return;
-  const id = ev.target.closest(".book").dataset.id;
-  const book = state.books.find((b) => b.id === id);
-  const title = prompt("新しいタイトル", book.title);
-  if (title && title.trim()) {
-    book.title = title.trim();
+  if (ev.target.matches(".rename")) {
+    const book = findBook(ev.target);
+    const title = prompt("新しいタイトル", book.title);
+    if (title && title.trim()) {
+      book.title = title.trim();
+      save();
+      render();
+    }
+  } else if (ev.target.matches(".set-total")) {
+    const book = findBook(ev.target);
+    const answer = prompt("この本の全ページ数（空にすると解除）", book.totalPages || "");
+    if (answer === null) return;
+    const total = parsePages(answer);
+    if (total) book.totalPages = total;
+    else delete book.totalPages;
     save();
     render();
   }
@@ -162,6 +265,7 @@ document.getElementById("import").addEventListener("change", async (ev) => {
         book = { id: inc.id || uid(), title: inc.title, createdAt: inc.createdAt, entries: [] };
         state.books.push(book);
       }
+      if (!book.totalPages && inc.totalPages) book.totalPages = inc.totalPages;
       const seen = new Set(book.entries.map((e) => `${e.at}|${e.page}`));
       for (const e of inc.entries || []) {
         if (!seen.has(`${e.at}|${e.page}`)) {
